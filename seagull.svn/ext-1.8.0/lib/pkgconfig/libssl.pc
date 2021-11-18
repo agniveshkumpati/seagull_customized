@@ -1,0 +1,11 @@
+prefix=/home/akumpati/seagullInstallation/backupInstall/seagull.svn/ext-1.8.0
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: OpenSSL
+Description: Secure Sockets Layer and cryptography libraries
+Version: 0.9.8c
+Requires: 
+Libs: -L${libdir} -lssl -lcrypto -ldl
+Cflags: -I${includedir} 

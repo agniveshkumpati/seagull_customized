@@ -1,0 +1,273 @@
+<!--
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+ (c)Copyright 2006 Hewlett-Packard Development Company, LP.
+
+-->
+<!--
+
+<init>
+     <=== CER
+	 ===> CEA
+</init>
+
+<traffic>
+	 <=== UAR
+	 ===> UAA
+	 
+	 <=== MAR
+	 ===> MAA
+	 
+	 <=== UAR
+	 ===> UAA
+	 
+	 <=== SAR
+	 ===> SAA
+</traffic>
+
+	TODO: DWR/DWA
+
+-->
+
+
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<scenario>
+
+<init>
+  <receive channel="channel-1">
+    <command name="CER">
+    </command>
+    <action>
+	  <store name="HbH" entity="HbH-id"> </store>
+      <store name="E2E" entity="EtE-id"> </store>
+      <store name="ven" entity="Vendor-Id"> </store>
+    </action>
+  </receive>
+  
+  <send channel="channel-1">
+    <action>
+      <restore name="HbH" entity="HbH-id"> </restore>
+      <restore name="E2E" entity="EtE-id"> </restore>
+    </action>
+    <command name="CEA">
+      <avp name="Result-Code" value="2001"> </avp>
+      <avp name="Origin-Host" value="hss.open-ims.test"> </avp>
+      <avp name="Origin-Realm" value="open-ims.test"> </avp>
+      <avp name="Host-IP-Address" value="0x0001ac10163c"> </avp>  <!-- 172.16.22.60 -->
+      <avp name="Vendor-Id" value="10415"> </avp>
+      <avp name="Product-Name" value="Oracle_HSS"> </avp>
+      <avp name="Firmware-Revision" value="1"> </avp>    
+    </command>
+  </send>
+</init>
+
+<traffic>
+  <!-- Step 1: Processing UAR and responding with UAA -->
+  <receive channel="channel-1">
+    <command name="UAR">
+      <!-- Only need to specify what needs to be parsed -->
+      <avp name="Session-Id" value="dont_care"> </avp>
+    </command>
+    <!-- Store action is at the end of the command -->
+    <action>
+      <store name="HbH" entity="HbH-id"></store>
+      <store name="E2E" entity="EtE-id"></store>
+      <store name="sid" entity="Session-Id"></store>
+      <store name="DestHost" entity="Destination-Host"></store>
+      <store name="DestRealm" entity="Destination-Realm"></store>
+    </action>
+  </receive>  
+
+  <send channel="channel-1">
+    <!-- Restore action is before the command -->
+    <action>
+      <restore name="HbH" entity="HbH-id"> </restore>
+      <restore name="E2E" entity="EtE-id"> </restore>
+      <restore name="sid" entity="Session-Id"> </restore>
+      <restore name="DestHost" entity="Origin-Host"> </restore>
+      <restore name="DestRealm" entity="Origin-Realm"> </restore>
+    </action>
+    <!-- Warning: content of SAA to check -->
+    <command name="UAA">
+      <avp name="Session-Id" value="will_be_erased"> </avp>
+      <avp name="Origin-Host" value="will_be_erased"> </avp>
+      <avp name="Origin-Realm" value="will_be_erased"> </avp>
+      <avp name="Auth-Session-State" value="1"> </avp>  <!-- NO_STATE_MAINTAINED (1) -->
+	  <avp name="Vendor-Specific-Application-Id">
+        <avp name="Vendor-Id" value="10415"> </avp>
+        <avp name="Auth-Application-Id" value="16777216"> </avp>
+<!--    <avp name="Acct-Application-Id" value="0"> </avp>  -->
+      </avp>
+<!--	  
+	  <avp name="Server-Capabilities">
+        <avp name="Optional-Capability" value="0"> </avp>
+        <avp name="Server-Name" value="sip:scscf.open-ims.test:6060"> </avp>  
+      </avp>
+-->
+      <avp name="Result-Code" value="2001"> </avp>  <!-- DIAMETER_FIRST_REGISTRATION (2001) -->
+    </command>
+  </send>
+  
+  
+  
+  <!-- Step 2: Processing MAR and responding with MAA -->
+  <receive channel="channel-1">
+    <command name="MAR">
+      <!-- Only need to specify what needs to be parsed -->
+      <avp name="Session-Id" value="dont_care"> </avp>
+    </command>
+    <!-- Store action is at the end of the command -->
+    <action>
+      <store name="HbH" entity="HbH-id"> </store>
+      <store name="E2E" entity="EtE-id"> </store>
+      <store name="sid" entity="Session-Id"> </store>
+      <store name="DestHost" entity="Destination-Host"> </store>
+      <store name="DestRealm" entity="Destination-Realm"> </store>
+      <store name="PubId" entity="Public-Identity"> </store>
+      <store name="username" entity="User-Name"> </store>
+    </action>
+  </receive>  
+
+  <send channel="channel-1">
+    <!-- Restore action is before the command -->
+    <action>
+      <restore name="HbH" entity="HbH-id"> </restore>
+      <restore name="E2E" entity="EtE-id"> </restore>
+      <restore name="sid" entity="Session-Id"> </restore>
+      <restore name="DestHost" entity="Origin-Host"> </restore>
+      <restore name="DestRealm" entity="Origin-Realm"> </restore>
+      <restore name="PubId" entity="Public-Identity"> </restore>
+      <restore name="username" entity="User-Name"> </restore>
+      <restore name="DestRealm" entity="Digest-Realm"> </restore>
+      <set-value name="Digest-HA1" method="authenticationDiameter" format="username=$(username);realm=$(DestRealm);password=12345"></set-value>
+
+<!--  <set-value name="Digest-HA1" method="authenticationSip" 
+					format="username=alice;password=12345;auth=Digest realm=\"open-ims.test\", algorithm=MD5;method=REGISTER;uri=sip:testuri.com"></set-value> -->
+
+<!--  <set-value name="Digest-HA1" method="authenticationSip"
+					format="username=$(username);password=$(username);auth=$(username);method=$(username);uri=$(username)"></set-value> -->
+
+    </action>
+    <!-- Warning: content of SAA to check -->
+    <command name="MAA">
+      <avp name="Session-Id" value="will_be_erased"> </avp>
+      <avp name="Origin-Host" value="will_be_erased"> </avp>
+      <avp name="Origin-Realm" value="will_be_erased"> </avp>
+      <avp name="Auth-Session-State" value="1"> </avp>  <!-- NO_STATE_MAINTAINED (1) -->
+      <avp name="Vendor-Specific-Application-Id">
+        <avp name="Vendor-Id" value="10415"> </avp>
+        <avp name="Auth-Application-Id" value="16777216"> </avp>
+<!--    <avp name="Acct-Application-Id" value="0"> </avp>  -->
+      </avp>
+      <avp name="Public-Identity" value="will_be_erased"> </avp>
+      <avp name="User-Name" value="will_be_erased"> </avp>
+      <avp name="SIP-Number-Auth-Items" value="1"> </avp>
+
+      <avp name="SIP-Auth-Data-Item">
+        <avp name="SIP-Item-Number" value="1"> </avp>
+        <avp name="SIP-Authentication-Scheme" value="SIP Digest"> </avp>
+        <avp name="SIP-Digest-Authenticate">
+	  <avp name="Digest-HA1" value="will_be_erased"> </avp>			<!-- value="e0e3a30dc0a88001d286313a35d25d30"> </avp>  -->
+	  <avp name="Digest-Realm" value="will_be_erased"> </avp>
+        </avp>
+      </avp>
+      <avp name="Result-Code" value="2001"> </avp>  <!-- DIAMETER_FIRST_REGISTRATION (2001) -->
+    </command>
+  </send>  
+  
+</traffic> 
+  <!-- Step 3: Processing UAR and responding with UAA -->
+  
+ <default> 
+  <!-- Step 4: Processing SAR and responding with SAA -->
+  <receive channel="channel-1">
+    <command name="SAR">
+      <!-- Only need to specify what needs to be parsed -->
+      <avp name="Session-Id" value="dont_care"> </avp>
+    </command>
+    <!-- Store action is at the end of the command -->
+    <action>
+      <store name="HbH" entity="HbH-id"></store>
+      <store name="E2E" entity="EtE-id"></store>
+      <store name="sid" entity="Session-Id"></store>
+      <store name="DestHost" entity="Destination-Host"></store>
+      <store name="DestRealm" entity="Destination-Realm"></store>
+      <store name="username" entity="User-Name"> </store>
+    </action>
+  </receive>
+  
+  <send channel="channel-1">
+    <!-- Restore action is before the command -->
+    <action>
+      <restore name="HbH" entity="HbH-id"> </restore>
+      <restore name="E2E" entity="EtE-id"> </restore>
+      <restore name="sid" entity="Session-Id"> </restore>
+      <restore name="DestHost" entity="Origin-Host"> </restore>
+      <restore name="DestRealm" entity="Origin-Realm"> </restore>
+      <restore name="username" entity="User-Name"> </restore>
+      <set-value name="Cx-User-Data" format="<?xml version=\"1.0\" encoding=\"UTF-8\"?><IMSSubscription><PrivateID>$(username)</PrivateID><ServiceProfile><PublicIdentity><Identity>sip:$(username)</Identity></PublicIdentity><InitialFilterCriteria><Priority>0</Priority><TriggerPoint><ConditionTypeCNF>1</ConditionTypeCNF><SPT><ConditionNegated>0</ConditionNegated><Group>0</Group><Method>INVITE</Method><Extension></Extension></SPT></TriggerPoint><ApplicationServer><ServerName>sip:127.0.0.1:5065</ServerName><DefaultHandling>0</DefaultHandling></ApplicationServer></InitialFilterCriteria></ServiceProfile></IMSSubscription>"> </set-value>
+
+    </action>
+    <!-- Warning: content of SAA to check -->
+    <command name="SAA">
+      <avp name="Session-Id" value="will_be_erased"> </avp>
+      <avp name="Origin-Host" value="will_be_erased"> </avp>
+      <avp name="Origin-Realm" value="will_be_erased"> </avp>
+      <avp name="Auth-Session-State" value="1"> </avp>  <!-- NO_STATE_MAINTAINED (1) -->
+      <avp name="Vendor-Specific-Application-Id">
+        <avp name="Vendor-Id" value="10415"></avp>
+        <avp name="Auth-Application-Id" value="16777216"></avp>
+       <!--  <avp name="Acct-Application-Id" value="0"></avp>   -->
+      </avp>
+      <avp name="User-Name" value="will_be_erased"> </avp>
+      <avp name="Cx-User-Data" value="value_is_replaced"> </avp>
+      <avp name="Result-Code" value="2001"> </avp>
+    </command>
+  </send>
+</default>
+
+<default>
+  <receive channel="channel-1">
+    <command name="DWR">
+    </command>
+    <action>
+      <store name="HbH" entity="HbH-id"></store>
+      <store name="E2E" entity="EtE-id"></store>
+    </action>
+  </receive>
+
+  <send channel="channel-1">
+    <action>
+      <restore name="HbH" entity="HbH-id"> </restore>
+      <restore name="E2E" entity="EtE-id"> </restore>
+    </action>
+    <command name="DWA">
+      <avp name="Result-Code" value="2001"> </avp>
+      <avp name="Origin-Host" value="hss.open-ims.test"> </avp>
+      <avp name="Origin-Realm" value="open-ims.test"> </avp>
+    </command>
+  </send>
+
+</default>
+
+
+
+</scenario>
+
+
+
+
+
