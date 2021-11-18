@@ -27,3 +27,14 @@ AVP: Digest-HA1(121) l=40 f=-M- val=0adbdd72b58264405ba95eca33cccaf6
     AVP Length: 40
     Digest-HA1: 0adbdd72b58264405ba95eca33cccaf6
     </pre>
+
+<pre>
+[agniveshkumpati]$ seagull
+option -conf is mandatory
+seagull
+ Version tool   : 1.9.0
+ This is customized version of Seagull tool to support MD5 Hash calculation for Diameter Protocol(Digest-HA1 AVP)
+ Usage: param="lib=lib_crypto.so;function=crypto_method_diameter"
+ Parameters: username, realm, password
+ Author: Agnivesh Kumpati
+</pre>
